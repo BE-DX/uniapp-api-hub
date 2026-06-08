@@ -1,0 +1,50 @@
+server:
+  port: 18080
+
+spring:
+  application:
+    name: galaxy-api-hub
+  datasource:
+    url: jdbc:mysql://localhost:3306/galaxy_api_hub?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# Sa-Token 配置
+sa-token:
+  token-name: Authorization
+  timeout: 86400                # 绝对过期：24小时（不管是否操作，到点就失效）
+  active-timeout: 1800          # 空闲过期：30分钟无操作自动失效（每次API调用自动续期）
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-log: true
+  jwt-secret-key: galaxy-api-hub-jwt-secret-change-in-production
+
+# API代理配置
+proxy:
+  connect-timeout: 30
+  read-timeout: 60
+  max-idle-connections: 20
+  keep-alive-duration: 300
+
+# Knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh-CN
