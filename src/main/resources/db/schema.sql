@@ -1,12 +1,12 @@
 -- =========================================
--- Galaxy API Hub — 数据库初始化脚本
+-- Uniapp API Hub — 数据库初始化脚本
 -- =========================================
 
-CREATE DATABASE IF NOT EXISTS galaxy_api_hub
+CREATE DATABASE IF NOT EXISTS uniapp_api_hub
     DEFAULT CHARACTER SET utf8mb4
     DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE galaxy_api_hub;
+USE uniapp_api_hub;
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS sys_user (

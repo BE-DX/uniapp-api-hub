@@ -3,9 +3,9 @@ server:
 
 spring:
   application:
-    name: galaxy-api-hub
+    name: uniapp-api-hub
   datasource:
-    url: jdbc:mysql://localhost:3306/galaxy_api_hub?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://localhost:3306/uniapp_api_hub?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -34,7 +34,7 @@ sa-token:
   is-share: false
   token-style: uuid
   is-log: true
-  jwt-secret-key: galaxy-api-hub-jwt-secret-change-in-production
+  jwt-secret-key: uniapp-api-hub-jwt-secret-change-in-production
 
 # API代理配置
 proxy:

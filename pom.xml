@@ -11,11 +11,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.galaxy</groupId>
+    <groupId>com.uniapp</groupId>
     <artifactId>uniapp-api-hub</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
-    <name>Galaxy API Hub</name>
+    <name>Uniapp API Hub</name>
     <description>通用API中台 — 中转代理、认证管理、多系统接入</description>
 
     <properties>

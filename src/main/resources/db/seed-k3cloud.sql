@@ -3,7 +3,7 @@
 -- 开发环境: K3Cloud 部署在 localhost
 -- =========================================
 
-USE galaxy_api_hub;
+USE uniapp_api_hub;
 
 -- 系统配置
 INSERT INTO sys_system_config (sys_code, sys_name, base_url, auth_type, auth_config, enabled, remark) VALUES
