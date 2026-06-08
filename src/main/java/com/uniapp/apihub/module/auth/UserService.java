@@ -38,6 +38,10 @@ public class UserService {
      * 创建用户
      */
     public User createUser(User user) {
+        // 不允许创建超级管理员（只能通过 initAdmin 初始化）
+        if (SUPER_ADMIN.equals(user.getRole())) {
+            throw new BusinessException("不能创建超级管理员，超级管理员仅可通过系统初始化生成");
+        }
         // 用户名唯一性
         User exist = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getUsername, user.getUsername()));
@@ -63,6 +67,10 @@ public class UserService {
         User db = userMapper.selectById(user.getId());
         if (db == null) throw new BusinessException("用户不存在");
         if (SUPER_ADMIN.equals(db.getRole())) throw new BusinessException("无法编辑超级管理员");
+        // 不能把普通用户改成超级管理员
+        if (SUPER_ADMIN.equals(user.getRole()) && !SUPER_ADMIN.equals(db.getRole())) {
+            throw new BusinessException("不能将用户提升为超级管理员");
+        }
 
         // 只更新允许的字段
         db.setRealName(user.getRealName());
