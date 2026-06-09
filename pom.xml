@@ -69,6 +69,13 @@
             <version>${okhttp.version}</version>
         </dependency>
 
+        <!-- K3Cloud WebAPI SDK（金蝶官方，本地仓库安装） -->
+        <dependency>
+            <groupId>com.kingdee</groupId>
+            <artifactId>k3cloud-webapi-sdk</artifactId>
+            <version>8.2.0</version>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
