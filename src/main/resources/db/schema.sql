@@ -29,16 +29,15 @@ CREATE TABLE IF NOT EXISTS sys_user (
 -- 系统配置表
 CREATE TABLE IF NOT EXISTS sys_system_config (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    sys_code VARCHAR(50) NOT NULL COMMENT '系统编码，如 k3cloud/cosmic',
+    sys_code VARCHAR(50) NOT NULL COMMENT '系统编码，如 k3cloud/jdy',
     sys_name VARCHAR(100) NOT NULL COMMENT '系统名称',
     base_url VARCHAR(500) NOT NULL COMMENT '下游系统基础URL',
     auth_type VARCHAR(20) NOT NULL DEFAULT 'NONE' COMMENT '认证方式: TOKEN/COOKIE/BASIC/NONE',
-    auth_config JSON DEFAULT NULL COMMENT '认证配置JSON',
+    auth_config TEXT DEFAULT NULL COMMENT '认证配置JSON(加密存储)',
     enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
     remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
     UNIQUE KEY uk_sys_code (sys_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表';
 

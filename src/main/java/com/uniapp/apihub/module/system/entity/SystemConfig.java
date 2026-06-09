@@ -1,12 +1,16 @@
 package com.uniapp.apihub.module.system.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
- * 下游系统配置表 — 每个接入的系统一条记录
+ * 下游系统配置表 — 每种类型仅一条记录，物理删除
  */
 @Data
 @TableName("sys_system_config")
@@ -15,7 +19,7 @@ public class SystemConfig {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 系统编码，如 k3cloud / cosmic */
+    /** 系统编码，如 k3cloud / jdy */
     private String sysCode;
 
     /** 系统名称 */
@@ -41,7 +45,4 @@ public class SystemConfig {
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-
-    @TableLogic
-    private Integer deleted;
 }

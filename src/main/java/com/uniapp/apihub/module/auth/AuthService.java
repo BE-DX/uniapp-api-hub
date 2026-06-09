@@ -6,6 +6,7 @@ import com.uniapp.apihub.common.BusinessException;
 import com.uniapp.apihub.module.auth.entity.LoginDTO;
 import com.uniapp.apihub.module.auth.entity.User;
 import com.uniapp.apihub.module.auth.mapper.UserMapper;
+import com.uniapp.apihub.module.system.AppConfigService;
 import com.uniapp.apihub.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,13 +25,12 @@ import java.util.Map;
 public class AuthService {
 
     private final UserMapper userMapper;
+    private final AppConfigService appConfigService;
 
     /** 默认角色 */
     private static final String DEFAULT_ROLE = "user";
     /** 超级管理员角色 */
     private static final String SUPER_ADMIN_ROLE = "superAdmin";
-    /** 默认初始密码 */
-    private static final String DEFAULT_PASSWORD = "password123";
 
     /**
      * 用户登录
@@ -52,8 +52,9 @@ public class AuthService {
         StpUtil.login(user.getId());
         String token = StpUtil.getTokenValue();
 
-        // 判断是否需要修改密码（首次登录）
-        boolean mustChangePwd = user.getLastLoginTime() == null;
+        // 判断是否需要修改密码（首次登录 或 使用默认密码）
+        boolean mustChangePwd = user.getLastLoginTime() == null
+                || PasswordUtil.verify(appConfigService.getDefaultPassword(), user.getSalt(), user.getPassword());
 
         // 更新最后登录时间
         user.setLastLoginTime(LocalDateTime.now());
@@ -83,8 +84,9 @@ public class AuthService {
             throw new BusinessException("管理员账号已存在");
         }
 
+        String password = appConfigService.getDefaultPassword();
         String salt = PasswordUtil.generateSalt();
-        String hash = PasswordUtil.hash(DEFAULT_PASSWORD, salt);
+        String hash = PasswordUtil.hash(password, salt);
 
         User admin = new User();
         admin.setUsername("admin");
@@ -96,11 +98,11 @@ public class AuthService {
         admin.setCreateTime(LocalDateTime.now());
         userMapper.insert(admin);
 
-        log.info("初始化超级管理员: admin / {}", DEFAULT_PASSWORD);
+        log.info("初始化超级管理员: admin / {}", password);
 
         Map<String, Object> result = new HashMap<>();
         result.put("username", "admin");
-        result.put("password", DEFAULT_PASSWORD);
+        result.put("password", password);
         result.put("message", "初始化成功，请妥善保管密码，首次登录后修改");
         return result;
     }

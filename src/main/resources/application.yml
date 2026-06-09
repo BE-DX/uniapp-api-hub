@@ -48,3 +48,7 @@ knife4j:
   enable: true
   setting:
     language: zh-CN
+
+# AES加密密钥（保护下游系统authConfig凭据，生产环境务必修改）
+crypto:
+  secret-key: uniapp-api-hub-crypto-key-2026-change-in-production

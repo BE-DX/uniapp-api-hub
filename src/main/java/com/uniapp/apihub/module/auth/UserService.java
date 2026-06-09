@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.uniapp.apihub.common.BusinessException;
 import com.uniapp.apihub.module.auth.entity.User;
 import com.uniapp.apihub.module.auth.mapper.UserMapper;
+import com.uniapp.apihub.module.system.AppConfigService;
 import com.uniapp.apihub.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,8 +19,8 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final UserMapper userMapper;
+    private final AppConfigService appConfigService;
 
-    private static final String DEFAULT_PASSWORD = "password123";
     private static final String SUPER_ADMIN = "superAdmin";
 
     /**
@@ -50,7 +51,7 @@ public class UserService {
         }
         // 生成密码
         String salt = PasswordUtil.generateSalt();
-        user.setPassword(PasswordUtil.hash(DEFAULT_PASSWORD, salt));
+        user.setPassword(PasswordUtil.hash(appConfigService.getDefaultPassword(), salt));
         user.setSalt(salt);
         if (user.getRole() == null) user.setRole("user");
         if (user.getForbidStatus() == null) user.setForbidStatus("A");
@@ -116,7 +117,7 @@ public class UserService {
         if (db == null) throw new BusinessException("用户不存在");
         if (SUPER_ADMIN.equals(db.getRole())) throw new BusinessException("无法重置超级管理员密码");
         String salt = PasswordUtil.generateSalt();
-        db.setPassword(PasswordUtil.hash(DEFAULT_PASSWORD, salt));
+        db.setPassword(PasswordUtil.hash(appConfigService.getDefaultPassword(), salt));
         db.setSalt(salt);
         db.setLastLoginTime(null); // 清空登录时间，下次登录强制改密
         userMapper.updateById(db);
