@@ -44,6 +44,8 @@ public class K3CloudAdapter implements SystemAdapter {
                 return parseResult(k3CloudService.submit(sysCode(), requiredText(payload, "formId"), toJson(dataOrPayload(payload))));
             case "audit":
                 return parseResult(k3CloudService.audit(sysCode(), requiredText(payload, "formId"), toJson(dataOrPayload(payload))));
+            case "uploadAttachment":
+                return k3CloudService.uploadAttachment(sysCode(), payload);
             case "execute":
                 return executeSdk(payload);
             default:

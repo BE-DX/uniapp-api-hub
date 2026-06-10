@@ -3,6 +3,7 @@ package com.uniapp.apihub.module.k3cloud;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.Gson;
 import com.kingdee.bos.webapi.entity.IdentifyInfo;
 import com.kingdee.bos.webapi.sdk.K3CloudApi;
@@ -13,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,7 @@ public class K3CloudService {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Gson gson = new Gson();
     private static final int DEFAULT_LCID = 2052;
+    private static final int ATTACHMENT_CHUNK_SIZE = 3 * 1024 * 1024;
 
     public String save(String sysCode, String formId, String jsonData) {
         K3CloudApi client = buildClient(sysCode);
@@ -87,8 +91,11 @@ public class K3CloudService {
             params.put("CreateOrgId", 0);
             params.put("Number", billNo);
             params.put("IsSortBySeq", true);
-            log.debug("K3Cloud view: sys={} formId={} billNo={}", sysCode, formId, billNo);
-            return client.view(formId, gson.toJson(params));
+            String requestJson = gson.toJson(params);
+            log.debug("K3Cloud view: sys={} formId={} params={}", sysCode, formId, requestJson);
+            String response = client.view(formId, requestJson);
+            log.debug("K3Cloud view response: sys={} formId={} billNo={} response={}", sysCode, formId, billNo, response);
+            return response;
         } catch (Exception e) {
             log.error("K3Cloud 查看失败: {} {}", formId, e.getMessage());
             throw new BusinessException("金蝶查看失败: " + e.getMessage());
@@ -128,6 +135,74 @@ public class K3CloudService {
         }
     }
 
+    public String attachmentUpload(String sysCode, String jsonData) {
+        K3CloudApi client = buildClient(sysCode);
+        try {
+            log.info("K3Cloud attachment upload: sys={}", sysCode);
+            return client.attachmentUpload(jsonData);
+        } catch (Exception e) {
+            log.error("K3Cloud 附件上传失败", e);
+            throw new BusinessException("金蝶附件上传失败: " + errorMessage(e));
+        }
+    }
+
+    public Map<String, Object> uploadAttachment(String sysCode, Map<String, Object> payload) {
+        String formId = requiredText(payload, "formId");
+        String fileName = requiredText(payload, "fileName");
+        String interId = requiredText(payload, "interId");
+        String billNo = requiredText(payload, "billNo");
+        String fileBase64 = requiredText(payload, "fileBase64");
+        byte[] fileBytes = decodeBase64File(fileBase64);
+        if (fileBytes.length == 0) {
+            throw new BusinessException("上传文件内容为空");
+        }
+
+        K3CloudApi client = buildClient(sysCode);
+        int totalChunks = (int) Math.ceil((double) fileBytes.length / ATTACHMENT_CHUNK_SIZE);
+        String fileId = "";
+
+        try {
+            for (int i = 0; i < totalChunks; i++) {
+                int start = i * ATTACHMENT_CHUNK_SIZE;
+                int end = Math.min(start + ATTACHMENT_CHUNK_SIZE, fileBytes.length);
+                byte[] chunk = Arrays.copyOfRange(fileBytes, start, end);
+
+                ObjectNode data = objectMapper.createObjectNode();
+                data.put("FileName", fileName);
+                data.put("FormId", formId);
+                data.put("IsLast", i == totalChunks - 1);
+                data.put("InterId", interId);
+                data.put("BillNO", billNo);
+                data.put("AliasFileName", fileName);
+                data.put("SendByte", Base64.getEncoder().encodeToString(chunk));
+                if (!fileId.isEmpty()) {
+                    data.put("FileId", fileId);
+                }
+
+                String response = client.attachmentUpload(objectMapper.writeValueAsString(data));
+                assertAttachmentSuccess(response, i + 1, totalChunks);
+                String responseFileId = extractAttachmentFileId(response);
+                if (responseFileId != null && !responseFileId.trim().isEmpty()) {
+                    fileId = responseFileId;
+                }
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("fileId", fileId);
+            result.put("fileName", fileName);
+            result.put("billNo", billNo);
+            result.put("interId", interId);
+            result.put("chunkCount", totalChunks);
+            result.put("size", fileBytes.length);
+            return result;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("K3Cloud 附件上传异常: billNo={} fileName={}", billNo, fileName, e);
+            throw new BusinessException("金蝶附件上传失败: " + errorMessage(e));
+        }
+    }
+
     public static boolean isSuccess(String resultJson) {
         try {
             JsonNode root = objectMapper.readTree(resultJson);
@@ -151,6 +226,31 @@ public class K3CloudService {
             }
         } catch (Exception e) {
             log.warn("提取单据编号失败: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private void assertAttachmentSuccess(String response, int chunkIndex, int totalChunks) {
+        if (response == null || response.trim().isEmpty()) {
+            throw new BusinessException("附件上传失败，第 " + chunkIndex + "/" + totalChunks + " 片返回为空");
+        }
+        if (!isSuccess(response)) {
+            throw new BusinessException("附件上传失败，第 " + chunkIndex + "/" + totalChunks + " 片响应: " + response);
+        }
+    }
+
+    private String extractAttachmentFileId(String response) {
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode result = root.path("Result");
+            if (result.hasNonNull("FileId")) {
+                return result.get("FileId").asText();
+            }
+            if (result.hasNonNull("FileID")) {
+                return result.get("FileID").asText();
+            }
+        } catch (Exception e) {
+            log.warn("提取附件 FileId 失败: {}", e.getMessage());
         }
         return null;
     }
@@ -216,6 +316,23 @@ public class K3CloudService {
             throw new BusinessException(String.join("/", keys) + " 为必填项");
         }
         return value;
+    }
+
+    private String requiredText(Map<String, Object> params, String key) {
+        Object value = params == null ? null : params.get(key);
+        if (value == null || value.toString().trim().isEmpty()) {
+            throw new BusinessException(key + " 为必填项");
+        }
+        return value.toString().trim();
+    }
+
+    private byte[] decodeBase64File(String fileBase64) {
+        String text = fileBase64.trim();
+        int commaIndex = text.indexOf(',');
+        if (text.startsWith("data:") && commaIndex >= 0) {
+            text = text.substring(commaIndex + 1);
+        }
+        return Base64.getDecoder().decode(text);
     }
 
     private Object valueOrDefault(Map<String, Object> params, Object defaultValue, String... keys) {
