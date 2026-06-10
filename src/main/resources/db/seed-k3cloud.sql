@@ -9,7 +9,7 @@ USE uniapp_api_hub;
 INSERT INTO sys_system_config (sys_code, sys_name, base_url, auth_type, auth_config, enabled, remark) VALUES
 ('k3cloud', '金蝶星空K3Cloud', 'http://localhost',
  'TOKEN',
- '{"appId":"343282_713CSdvETqDaR/8K655M591s1t0+6PLG","appSec":"5d07c9454ded45b0a9fc3e4dfee45711","acctId":"67482053589790","userName":"kingdee2","lcid":"2052"}',
+ '{"appId":"343282_713CSdvETqDaR/8K655M591s1t0+6PLG","appSec":"5d07c9454ded45b0a9fc3e4dfee45711","acctID":"67482053589790","username":"kingdee2","lcid":"2052"}',
  1, '开发环境K3Cloud');
 
 -- API路由 (system_id=1)

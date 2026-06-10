@@ -18,10 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 系统管理控制器
- *
- * 权限控制：所有管理端点需 admin 或 superAdmin 角色
- * 敏感操作：查看/编辑 authConfig 需二次密码验证
+ * 系统管理控制器。
  */
 @RestController
 @RequestMapping("/api/system")
@@ -31,8 +28,6 @@ public class SystemController {
     private final SystemService systemService;
     private final AppConfigService appConfigService;
     private final UserMapper userMapper;
-
-    /* ==================== 应用配置 ==================== */
 
     @SaCheckLogin
     @GetMapping("/config")
@@ -46,15 +41,21 @@ public class SystemController {
         return ApiResponse.ok(appConfigService.saveConfig(config));
     }
 
-    /* ==================== 系统配置 ==================== */
-
     @SaCheckRole(value = {"admin", "superAdmin"}, mode = SaMode.OR)
     @GetMapping("/list")
     public ApiResponse<List<SystemConfig>> listSystems() {
         return ApiResponse.ok(systemService.listSystems());
     }
 
-    /** 获取可用的系统类型枚举（前端下拉用） */
+    /**
+     * 登录用户可见的业务系统摘要，用于首页业务模块。
+     */
+    @SaCheckLogin
+    @GetMapping("/available")
+    public ApiResponse<List<Map<String, Object>>> listAvailableSystems() {
+        return ApiResponse.ok(systemService.listAvailableSystems());
+    }
+
     @SaCheckLogin
     @GetMapping("/types")
     public ApiResponse<List<Map<String, String>>> getSystemTypes() {
@@ -86,13 +87,8 @@ public class SystemController {
         return ApiResponse.ok();
     }
 
-    /* ==================== 二次验证 ==================== */
-
     /**
-     * 二次密码验证后查看解密后的 authConfig
-     *
-     * 请求体：{"password": "当前管理员密码"}
-     * 响应：解密后的 authConfig JSON 字符串
+     * 二次密码验证后查看解密后的认证信息。
      */
     @SaCheckRole(value = {"admin", "superAdmin"}, mode = SaMode.OR)
     @PostMapping("/reveal-auth/{sysCode}")
@@ -103,7 +99,6 @@ public class SystemController {
             throw new BusinessException("请输入当前密码进行身份验证");
         }
 
-        // 验密
         long userId = StpUtil.getLoginIdAsLong();
         User user = userMapper.selectById(userId);
         if (user == null) {
@@ -113,8 +108,6 @@ public class SystemController {
             throw new BusinessException("密码验证失败，无法查看敏感信息");
         }
 
-        // 返回解密后的 authConfig
-        String plainAuth = systemService.getAuthConfigPlain(sysCode);
-        return ApiResponse.ok(plainAuth);
+        return ApiResponse.ok(systemService.getAuthConfigPlain(sysCode));
     }
 }
