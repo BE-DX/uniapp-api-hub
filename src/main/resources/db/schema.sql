@@ -91,6 +91,29 @@ CREATE TABLE IF NOT EXISTS sys_role_permission (
 -- 初始化数据
 -- =========================================
 
+-- 默认公司
+INSERT INTO sys_company (company_code, company_name, enabled, remark)
+SELECT 'default', '默认公司', 1, '系统默认公司'
+WHERE NOT EXISTS (
+    SELECT 1 FROM sys_company WHERE company_code = 'default'
+);
+
+-- 初始超级管理员账号: admin / password123
+-- 密码使用后端 PasswordUtil 的 SHA-256 + salt 规则生成；首次登录后会被要求修改密码。
+INSERT INTO sys_user (username, password, salt, real_name, company_id, role, forbid_status, last_login_time)
+SELECT
+    'admin',
+    'b598a5a350b99cae51f408f5ca05e53cbbe51c9b16099888fbf5705f47502886',
+    'tYs/fQlhnDlqRf0Wbd8mjuIc9rTZIfgTSrRW8/hMgu4=',
+    '超级管理员',
+    (SELECT id FROM sys_company WHERE company_code = 'default' LIMIT 1),
+    'superAdmin',
+    'A',
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1 FROM sys_user WHERE username = 'admin'
+);
+
 -- 默认角色权限: user角色默认不允许任何操作（管理员手工分配）
 -- admin角色示例: 允许访问 k3cloud 系统
 INSERT INTO sys_role_permission (role_code, subject_type, subject_code, sys_code, route_key, allowed) VALUES
