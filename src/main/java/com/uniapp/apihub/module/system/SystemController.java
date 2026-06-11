@@ -3,11 +3,10 @@ package com.uniapp.apihub.module.system;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.annotation.SaMode;
-import cn.dev33.satoken.stp.StpUtil;
 import com.uniapp.apihub.common.ApiResponse;
 import com.uniapp.apihub.common.BusinessException;
 import com.uniapp.apihub.module.auth.entity.User;
-import com.uniapp.apihub.module.auth.mapper.UserMapper;
+import com.uniapp.apihub.security.CurrentUserContext;
 import com.uniapp.apihub.module.system.entity.SystemConfig;
 import com.uniapp.apihub.module.system.enums.SystemTypeEnum;
 import com.uniapp.apihub.util.PasswordUtil;
@@ -27,7 +26,7 @@ public class SystemController {
 
     private final SystemService systemService;
     private final AppConfigService appConfigService;
-    private final UserMapper userMapper;
+    private final CurrentUserContext currentUserContext;
 
     @SaCheckLogin
     @GetMapping("/config")
@@ -99,11 +98,7 @@ public class SystemController {
             throw new BusinessException("请输入当前密码进行身份验证");
         }
 
-        long userId = StpUtil.getLoginIdAsLong();
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new BusinessException("用户不存在");
-        }
+        User user = currentUserContext.currentUserEntity();
         if (!PasswordUtil.verify(password, user.getSalt(), user.getPassword())) {
             throw new BusinessException("密码验证失败，无法查看敏感信息");
         }

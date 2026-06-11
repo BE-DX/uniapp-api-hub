@@ -47,6 +47,17 @@ public class User {
     @com.fasterxml.jackson.annotation.JsonAlias({"email"})
     private String email;
 
+    /** 所属公司ID */
+    @JsonProperty("FCompanyID")
+    @com.fasterxml.jackson.annotation.JsonAlias({"companyId"})
+    private Long companyId;
+
+    /** 所属公司名称，仅返回前端展示 */
+    @TableField(exist = false)
+    @JsonProperty("FCompanyName")
+    @com.fasterxml.jackson.annotation.JsonAlias({"companyName"})
+    private String companyName;
+
     /** 角色: superAdmin / admin / user */
     @JsonProperty("FRole")
     @com.fasterxml.jackson.annotation.JsonAlias({"role"})

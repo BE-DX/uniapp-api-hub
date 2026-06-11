@@ -1,13 +1,11 @@
 package com.uniapp.apihub.module.hub;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
-import cn.dev33.satoken.stp.StpUtil;
 import com.uniapp.apihub.common.ApiResponse;
-import com.uniapp.apihub.common.BusinessException;
+import com.uniapp.apihub.security.CurrentUserContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,24 +21,13 @@ import java.util.Map;
 public class HubController {
 
     private final SystemAdapterRegistry adapterRegistry;
+    private final CurrentUserContext currentUserContext;
 
     @PostMapping("/{sysCode}/{operation}")
     public ApiResponse<Object> execute(@PathVariable String sysCode,
                                        @PathVariable String operation,
                                        @RequestBody(required = false) Map<String, Object> payload) {
-        checkHubPermission(sysCode, operation);
+        currentUserContext.requireHubPermission(sysCode, operation);
         return ApiResponse.ok(adapterRegistry.execute(sysCode, operation, payload));
-    }
-
-    private void checkHubPermission(String sysCode, String operation) {
-        List<String> permissions = StpUtil.getPermissionList();
-        String exact = sysCode + ":" + operation;
-        if (permissions.contains("*:*")
-                || permissions.contains(exact)
-                || permissions.contains(sysCode + ":*")
-                || permissions.contains("*:" + operation)) {
-            return;
-        }
-        throw new BusinessException(403, "无权访问中台能力: " + exact);
     }
 }

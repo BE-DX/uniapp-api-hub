@@ -2,6 +2,8 @@ package com.uniapp.apihub.module.system;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.uniapp.apihub.common.BusinessException;
+import com.uniapp.apihub.security.CurrentUser;
+import com.uniapp.apihub.security.CurrentUserContext;
 import com.uniapp.apihub.module.system.entity.SystemConfig;
 import com.uniapp.apihub.module.system.enums.SystemTypeEnum;
 import com.uniapp.apihub.module.system.mapper.SystemConfigMapper;
@@ -31,6 +33,7 @@ public class SystemService {
 
     private final SystemConfigMapper systemConfigMapper;
     private final CryptoUtil cryptoUtil;
+    private final CurrentUserContext currentUserContext;
 
     private static final String AUTH_CONFIG_MASK = "******";
 
@@ -54,8 +57,12 @@ public class SystemService {
     public List<Map<String, Object>> listAvailableSystems() {
         List<SystemConfig> list = systemConfigMapper.selectList(
                 new LambdaQueryWrapper<SystemConfig>().eq(SystemConfig::getEnabled, true));
+        CurrentUser currentUser = currentUserContext.currentUser();
         List<Map<String, Object>> result = new ArrayList<>();
         for (SystemConfig sys : list) {
+            if (!canAccessSystem(currentUser, sys.getSysCode())) {
+                continue;
+            }
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("sysCode", sys.getSysCode());
             item.put("sysName", sys.getSysName());
@@ -64,6 +71,14 @@ public class SystemService {
             result.add(item);
         }
         return result;
+    }
+
+    private boolean canAccessSystem(CurrentUser user, String sysCode) {
+        if (user.getPermissions().contains("*:*") || user.getPermissions().contains(sysCode + ":*")) {
+            return true;
+        }
+        String prefix = sysCode + ":";
+        return user.getPermissions().stream().anyMatch(permission -> permission.startsWith(prefix));
     }
 
     /**

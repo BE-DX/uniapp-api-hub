@@ -9,6 +9,18 @@ CREATE DATABASE IF NOT EXISTS uniapp_api_hub
 USE uniapp_api_hub;
 
 -- 用户表
+CREATE TABLE IF NOT EXISTS sys_company (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    company_code VARCHAR(50) NOT NULL COMMENT '公司编码',
+    company_name VARCHAR(100) NOT NULL COMMENT '公司名称',
+    enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
+    remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+    UNIQUE KEY uk_company_code (company_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公司表';
+
 CREATE TABLE IF NOT EXISTS sys_user (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL COMMENT '用户名',
@@ -17,13 +29,15 @@ CREATE TABLE IF NOT EXISTS sys_user (
     real_name VARCHAR(50) DEFAULT NULL COMMENT '真实姓名',
     phone VARCHAR(20) DEFAULT NULL COMMENT '手机号',
     email VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
+    company_id BIGINT DEFAULT NULL COMMENT '所属公司ID',
     role VARCHAR(20) NOT NULL DEFAULT 'user' COMMENT '角色: superAdmin/admin/user',
     forbid_status CHAR(1) NOT NULL DEFAULT 'A' COMMENT '禁用状态: A-正常/B-禁用',
     last_login_time DATETIME DEFAULT NULL COMMENT '最后登录时间',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
-    UNIQUE KEY uk_username (username)
+    UNIQUE KEY uk_username (username),
+    INDEX idx_company_id (company_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- 系统配置表
@@ -62,11 +76,15 @@ CREATE TABLE IF NOT EXISTS sys_api_route (
 CREATE TABLE IF NOT EXISTS sys_role_permission (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     role_code VARCHAR(20) NOT NULL COMMENT '角色: superAdmin/admin/user',
+    subject_type VARCHAR(20) NOT NULL DEFAULT 'role' COMMENT '授权主体类型: role/user',
+    subject_code VARCHAR(50) DEFAULT NULL COMMENT '授权主体编码: 角色编码或用户ID',
     sys_code VARCHAR(50) DEFAULT NULL COMMENT '系统编码(null=所有)',
+    module_code VARCHAR(50) DEFAULT NULL COMMENT '业务模块编码(预留)',
     route_key VARCHAR(50) DEFAULT NULL COMMENT '路由标识(null=该系统下所有)',
     allowed TINYINT NOT NULL DEFAULT 1 COMMENT '是否允许',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    INDEX idx_role (role_code)
+    INDEX idx_role (role_code),
+    INDEX idx_permission_subject (subject_type, subject_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色权限表';
 
 -- =========================================
@@ -75,5 +93,5 @@ CREATE TABLE IF NOT EXISTS sys_role_permission (
 
 -- 默认角色权限: user角色默认不允许任何操作（管理员手工分配）
 -- admin角色示例: 允许访问 k3cloud 系统
-INSERT INTO sys_role_permission (role_code, sys_code, route_key, allowed) VALUES
-('superAdmin', NULL, NULL, 1);
+INSERT INTO sys_role_permission (role_code, subject_type, subject_code, sys_code, route_key, allowed) VALUES
+('superAdmin', 'role', 'superAdmin', NULL, NULL, 1);

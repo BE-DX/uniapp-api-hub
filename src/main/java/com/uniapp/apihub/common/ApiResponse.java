@@ -33,6 +33,12 @@ public class ApiResponse<T> {
         return r;
     }
 
+    public static <T> ApiResponse<T> fail(int code, String msg, T data) {
+        ApiResponse<T> r = fail(code, msg);
+        r.data = data;
+        return r;
+    }
+
     public static <T> ApiResponse<T> fail(String msg) {
         return fail(500, msg);
     }

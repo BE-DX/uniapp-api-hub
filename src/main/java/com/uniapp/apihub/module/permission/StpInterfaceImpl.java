@@ -6,10 +6,12 @@ import com.uniapp.apihub.module.auth.entity.User;
 import com.uniapp.apihub.module.auth.mapper.UserMapper;
 import com.uniapp.apihub.module.permission.entity.RolePermission;
 import com.uniapp.apihub.module.permission.mapper.RolePermissionMapper;
+import com.uniapp.apihub.security.UserRoles;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,16 +34,23 @@ public class StpInterfaceImpl implements StpInterface {
         }
 
         // 超级管理员拥有所有权限
-        if ("superAdmin".equals(user.getRole())) {
-            return rolePermissionMapper.selectList(null).stream()
-                    .map(p -> buildPermissionKey(p.getSysCode(), p.getRouteKey()))
-                    .collect(Collectors.toList());
+        if (UserRoles.isSuperAdmin(user.getRole())) {
+            return Collections.singletonList("*:*");
         }
 
-        // 查该角色对应的权限
+        // 查角色基线权限 + 用户个人追加权限
         List<RolePermission> permissions = rolePermissionMapper.selectList(
                 new LambdaQueryWrapper<RolePermission>()
-                        .eq(RolePermission::getRoleCode, user.getRole()));
+                        .and(q -> q.and(role -> role
+                                        .eq(RolePermission::getSubjectType, "role")
+                                        .eq(RolePermission::getSubjectCode, user.getRole()))
+                                .or(userScope -> userScope
+                                        .eq(RolePermission::getSubjectType, "user")
+                                        .eq(RolePermission::getSubjectCode, String.valueOf(userId)))
+                                .or(legacy -> legacy
+                                        .isNull(RolePermission::getSubjectType)
+                                        .eq(RolePermission::getRoleCode, user.getRole())))
+                        .eq(RolePermission::getAllowed, true));
         return permissions.stream()
                 .map(p -> buildPermissionKey(p.getSysCode(), p.getRouteKey()))
                 .collect(Collectors.toList());

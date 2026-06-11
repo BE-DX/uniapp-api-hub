@@ -15,4 +15,14 @@ public class LoginDTO {
 
     @NotBlank(message = "密码不能为空")
     private String password;
+
+    /**
+     * 客户端类型：pc / mobile / miniapp。
+     */
+    private String clientType;
+
+    /**
+     * 是否确认顶掉同客户端旧会话。
+     */
+    private Boolean forceLogin;
 }
