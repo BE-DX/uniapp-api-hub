@@ -61,7 +61,7 @@ public class AuthService {
         String clientLabel = clientTypeLabel(clientType);
         String loginIp = getClientIp();
         LocalDateTime loginTime = LocalDateTime.now();
-        List<String> oldTokens = new ArrayList<>(StpUtil.getTokenValueListByLoginId(user.getId(), clientType));
+        List<String> oldTokens = getValidLoginTokens(user.getId(), clientType);
 
         if (!oldTokens.isEmpty() && !Boolean.TRUE.equals(dto.getForceLogin())) {
             throw new LoginConflictException(clientLabel + "有人正在使用", buildLoginConflictData(clientType, clientLabel, oldTokens.get(0)));
@@ -94,6 +94,38 @@ public class AuthService {
         return result;
     }
 
+    private List<String> getValidLoginTokens(Long userId, String clientType) {
+        List<String> tokens = new ArrayList<>(StpUtil.getTokenValueListByLoginId(userId, clientType));
+        List<String> validTokens = new ArrayList<>();
+        for (String token : tokens) {
+            if (isValidLoginToken(token, userId)) {
+                validTokens.add(token);
+            } else {
+                safeLogoutByToken(token);
+            }
+        }
+        return validTokens;
+    }
+
+    private boolean isValidLoginToken(String token, Long userId) {
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            StpUtil.getStpLogic().checkActiveTimeout(token);
+            Object loginId = StpUtil.getLoginIdByToken(token);
+            return loginId != null && String.valueOf(userId).equals(String.valueOf(loginId));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void safeLogoutByToken(String token) {
+        try {
+            StpUtil.logoutByTokenValue(token);
+        } catch (Exception ignored) {
+        }
+    }
     private Map<String, Object> buildLoginConflictData(String clientType, String clientLabel, String oldToken) {
         Map<String, Object> data = new HashMap<>();
         data.put("type", "LOGIN_CONFLICT");

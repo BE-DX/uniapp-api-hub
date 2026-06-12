@@ -29,7 +29,7 @@ mybatis-plus:
 sa-token:
   token-name: Authorization
   timeout: 86400                # 绝对过期：24小时（不管是否操作，到点就失效）
-  active-timeout: 1800          # 空闲过期：30分钟无操作自动失效（每次API调用自动续期）
+  active-timeout: 1800          # 空闲过期：30分钟无系统接口操作自动失效（每次API调用自动续期）
   is-concurrent: true
   is-share: false
   token-style: uuid
@@ -52,3 +52,4 @@ knife4j:
 # AES加密密钥（保护下游系统authConfig凭据，生产环境务必修改）
 crypto:
   secret-key: uniapp-api-hub-crypto-key-2026-change-in-production
+
