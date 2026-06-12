@@ -27,7 +27,7 @@ public class HubController {
     public ApiResponse<Object> execute(@PathVariable String sysCode,
                                        @PathVariable String operation,
                                        @RequestBody(required = false) Map<String, Object> payload) {
-        currentUserContext.requireHubPermission(sysCode, operation);
+        currentUserContext.requireHubPermission(sysCode, operation, payload);
         return ApiResponse.ok(adapterRegistry.execute(sysCode, operation, payload));
     }
 }

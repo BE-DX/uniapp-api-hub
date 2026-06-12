@@ -7,6 +7,7 @@ import com.uniapp.apihub.module.auth.entity.Company;
 import com.uniapp.apihub.module.auth.entity.User;
 import com.uniapp.apihub.module.auth.mapper.CompanyMapper;
 import com.uniapp.apihub.module.auth.mapper.UserMapper;
+import com.uniapp.apihub.module.permission.PermissionService;
 import com.uniapp.apihub.security.CurrentUserContext;
 import com.uniapp.apihub.security.UserRoles;
 import com.uniapp.apihub.module.system.AppConfigService;
@@ -25,6 +26,7 @@ public class UserService {
     private final CompanyMapper companyMapper;
     private final AppConfigService appConfigService;
     private final CurrentUserContext currentUserContext;
+    private final PermissionService permissionService;
 
     /**
      * 用户列表
@@ -82,6 +84,7 @@ public class UserService {
         if (user.getRole() == null) user.setRole(UserRoles.USER);
         if (user.getForbidStatus() == null) user.setForbidStatus("A");
         userMapper.insert(user);
+        permissionService.syncRolePermissionsToUser(user);
         enrichCompanyName(user);
         user.setPassword(null);
         user.setSalt(null);
@@ -126,12 +129,16 @@ public class UserService {
         }
 
         // 只更新允许的字段
+        String oldRole = db.getRole();
         db.setRealName(user.getRealName());
         db.setRole(user.getRole());
         db.setPhone(user.getPhone());
         db.setEmail(user.getEmail());
         db.setCompanyId(user.getCompanyId());
         userMapper.updateById(db);
+        if (!oldRole.equals(db.getRole())) {
+            permissionService.syncRolePermissionsToUser(db);
+        }
         enrichCompanyName(db);
         db.setPassword(null);
         db.setSalt(null);

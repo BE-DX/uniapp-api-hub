@@ -7,9 +7,9 @@ import com.uniapp.apihub.module.auth.entity.Company;
 import com.uniapp.apihub.module.auth.entity.User;
 import com.uniapp.apihub.module.auth.mapper.CompanyMapper;
 import com.uniapp.apihub.module.auth.mapper.UserMapper;
-import com.uniapp.apihub.module.permission.entity.ApiRoute;
+import com.uniapp.apihub.module.permission.entity.BusinessDocument;
 import com.uniapp.apihub.module.permission.entity.RolePermission;
-import com.uniapp.apihub.module.permission.mapper.ApiRouteMapper;
+import com.uniapp.apihub.module.permission.mapper.BusinessDocumentMapper;
 import com.uniapp.apihub.module.permission.mapper.RolePermissionMapper;
 import com.uniapp.apihub.module.system.entity.SystemConfig;
 import com.uniapp.apihub.module.system.mapper.SystemConfigMapper;
@@ -39,7 +39,7 @@ public class PermissionService {
     private final UserMapper userMapper;
     private final CompanyMapper companyMapper;
     private final SystemConfigMapper systemConfigMapper;
-    private final ApiRouteMapper apiRouteMapper;
+    private final BusinessDocumentMapper businessDocumentMapper;
     private final RolePermissionMapper rolePermissionMapper;
 
     public List<Map<String, Object>> listPermissionOptions() {
@@ -55,21 +55,26 @@ public class PermissionService {
             item.put("sysName", system.getSysName());
             item.put("permission", system.getSysCode() + ":*");
 
-            List<ApiRoute> routes = apiRouteMapper.selectList(
-                    new LambdaQueryWrapper<ApiRoute>()
-                            .eq(ApiRoute::getSystemId, system.getId())
-                            .eq(ApiRoute::getEnabled, true)
-                            .orderByAsc(ApiRoute::getId));
-            List<Map<String, Object>> routeItems = routes.stream().map(route -> {
+            List<BusinessDocument> documents = businessDocumentMapper.selectList(
+                    new LambdaQueryWrapper<BusinessDocument>()
+                            .eq(BusinessDocument::getSystemId, system.getId())
+                            .eq(BusinessDocument::getEnabled, true)
+                            .orderByAsc(BusinessDocument::getSortNo)
+                            .orderByAsc(BusinessDocument::getId));
+            List<Map<String, Object>> routeItems = documents.stream().map(document -> {
                 Map<String, Object> routeItem = new LinkedHashMap<>();
-                routeItem.put("routeKey", route.getRouteKey());
-                routeItem.put("name", route.getRemark() == null || route.getRemark().isEmpty()
-                        ? route.getRouteKey()
-                        : route.getRemark());
-                routeItem.put("permission", system.getSysCode() + ":" + route.getRouteKey());
+                routeItem.put("routeKey", document.getDocumentCode());
+                routeItem.put("documentCode", document.getDocumentCode());
+                routeItem.put("moduleCode", document.getModuleCode());
+                routeItem.put("moduleName", document.getModuleName());
+                routeItem.put("name", document.getDocumentName() == null || document.getDocumentName().isEmpty()
+                        ? document.getDocumentCode()
+                        : document.getDocumentName());
+                routeItem.put("permission", system.getSysCode() + ":" + document.getDocumentCode());
                 return routeItem;
             }).collect(Collectors.toList());
             item.put("routes", routeItems);
+            item.put("documents", routeItems);
             result.add(item);
         }
         return result;
@@ -145,6 +150,7 @@ public class PermissionService {
             }
         }
 
+        syncRolePermissionsToUsers(roleCode, permissions);
         return listRolePermissions(roleCode);
     }
 
@@ -166,6 +172,37 @@ public class PermissionService {
         }
 
         return listUserPermissions(userId);
+    }
+
+    private void syncRolePermissionsToUsers(String roleCode, List<String> permissions) {
+        List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>()
+                .eq(User::getRole, roleCode));
+        for (User user : users) {
+            saveUserPermissionRows(user, permissions);
+        }
+    }
+
+    @Transactional
+    public void syncRolePermissionsToUser(User user) {
+        if (user == null || UserRoles.SUPER_ADMIN.equals(user.getRole())) {
+            return;
+        }
+        saveUserPermissionRows(user, listRolePermissions(user.getRole()));
+    }
+
+    private void saveUserPermissionRows(User user, List<String> permissions) {
+        rolePermissionMapper.delete(new LambdaQueryWrapper<RolePermission>()
+                .eq(RolePermission::getSubjectType, SUBJECT_USER)
+                .eq(RolePermission::getSubjectCode, String.valueOf(user.getId())));
+        if (permissions == null) {
+            return;
+        }
+        for (String permission : permissions) {
+            RolePermission entity = parsePermission(user.getRole(), permission);
+            entity.setSubjectType(SUBJECT_USER);
+            entity.setSubjectCode(String.valueOf(user.getId()));
+            rolePermissionMapper.insert(entity);
+        }
     }
 
     private void validateManagedRole(String roleCode) {

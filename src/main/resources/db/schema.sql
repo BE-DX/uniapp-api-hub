@@ -118,3 +118,20 @@ WHERE NOT EXISTS (
 -- admin角色示例: 允许访问 k3cloud 系统
 INSERT INTO sys_role_permission (role_code, subject_type, subject_code, sys_code, route_key, allowed) VALUES
 ('superAdmin', 'role', 'superAdmin', NULL, NULL, 1);
+
+CREATE TABLE IF NOT EXISTS sys_business_document (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    system_id BIGINT NOT NULL COMMENT '关联系统ID',
+    module_code VARCHAR(50) DEFAULT NULL COMMENT '模块编码，预留',
+    module_name VARCHAR(100) DEFAULT NULL COMMENT '模块名称，预留',
+    document_code VARCHAR(80) NOT NULL COMMENT '业务单据编码',
+    document_name VARCHAR(120) NOT NULL COMMENT '业务单据名称',
+    enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
+    sort_no INT NOT NULL DEFAULT 0 COMMENT '排序',
+    remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+    UNIQUE KEY uk_system_document (system_id, document_code),
+    INDEX idx_business_document_system (system_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='业务单据权限目录';

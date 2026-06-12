@@ -42,7 +42,7 @@ public class SystemService {
      */
     public List<SystemConfig> listSystems() {
         List<SystemConfig> list = systemConfigMapper.selectList(
-                new LambdaQueryWrapper<SystemConfig>().eq(SystemConfig::getEnabled, true));
+                new LambdaQueryWrapper<SystemConfig>().orderByAsc(SystemConfig::getId));
         for (SystemConfig sys : list) {
             sys.setAuthConfig(maskAuthConfig(sys.getAuthConfig()));
         }

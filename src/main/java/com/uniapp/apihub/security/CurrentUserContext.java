@@ -13,11 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 当前请求上下文。
- *
- * 统一封装当前登录用户、角色判断和中台能力权限判断，避免业务代码到处直接读取 Sa-Token。
- */
 @Service
 @RequiredArgsConstructor
 public class CurrentUserContext {
@@ -75,9 +70,25 @@ public class CurrentUserContext {
                 || permissions.contains("*:" + operation);
     }
 
+    public boolean hasHubPermission(String sysCode, String operation, Map<String, Object> payload) {
+        String documentCode = extractDocumentCode(payload);
+        if (documentCode != null && !documentCode.isEmpty()) {
+            return hasHubPermission(sysCode, documentCode);
+        }
+        return hasHubPermission(sysCode, operation);
+    }
+
     public void requireHubPermission(String sysCode, String operation) {
         if (!hasHubPermission(sysCode, operation)) {
             throw new BusinessException(403, "无权访问中台能力: " + sysCode + ":" + operation);
+        }
+    }
+
+    public void requireHubPermission(String sysCode, String operation, Map<String, Object> payload) {
+        if (!hasHubPermission(sysCode, operation, payload)) {
+            String documentCode = extractDocumentCode(payload);
+            String permission = documentCode == null || documentCode.isEmpty() ? operation : documentCode;
+            throw new BusinessException(403, "无权访问中台能力: " + sysCode + ":" + permission);
         }
     }
 
@@ -110,5 +121,25 @@ public class CurrentUserContext {
         if (company != null) {
             user.setCompanyName(company.getCompanyName());
         }
+    }
+
+    private String extractDocumentCode(Map<String, Object> payload) {
+        if (payload == null) {
+            return null;
+        }
+        Object formId = payload.get("formId");
+        if (formId == null) {
+            formId = payload.get("FormId");
+        }
+        if (formId == null) {
+            Object data = payload.get("data");
+            if (data instanceof Map) {
+                formId = ((Map<?, ?>) data).get("formId");
+                if (formId == null) {
+                    formId = ((Map<?, ?>) data).get("FormId");
+                }
+            }
+        }
+        return formId == null ? null : String.valueOf(formId);
     }
 }

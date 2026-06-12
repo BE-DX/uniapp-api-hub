@@ -15,9 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Sa-Token 权限接口实现 — 加载用户角色和权限
- */
 @Component
 @RequiredArgsConstructor
 public class StpInterfaceImpl implements StpInterface {
@@ -33,23 +30,14 @@ public class StpInterfaceImpl implements StpInterface {
             return new ArrayList<>();
         }
 
-        // 超级管理员拥有所有权限
         if (UserRoles.isSuperAdmin(user.getRole())) {
             return Collections.singletonList("*:*");
         }
 
-        // 查角色基线权限 + 用户个人追加权限
         List<RolePermission> permissions = rolePermissionMapper.selectList(
                 new LambdaQueryWrapper<RolePermission>()
-                        .and(q -> q.and(role -> role
-                                        .eq(RolePermission::getSubjectType, "role")
-                                        .eq(RolePermission::getSubjectCode, user.getRole()))
-                                .or(userScope -> userScope
-                                        .eq(RolePermission::getSubjectType, "user")
-                                        .eq(RolePermission::getSubjectCode, String.valueOf(userId)))
-                                .or(legacy -> legacy
-                                        .isNull(RolePermission::getSubjectType)
-                                        .eq(RolePermission::getRoleCode, user.getRole())))
+                        .eq(RolePermission::getSubjectType, "user")
+                        .eq(RolePermission::getSubjectCode, String.valueOf(userId))
                         .eq(RolePermission::getAllowed, true));
         return permissions.stream()
                 .map(p -> buildPermissionKey(p.getSysCode(), p.getRouteKey()))
@@ -67,9 +55,6 @@ public class StpInterfaceImpl implements StpInterface {
         return roles;
     }
 
-    /**
-     * 权限标识: sysCode:routeKey 格式，如 k3cloud:save
-     */
     private String buildPermissionKey(String sysCode, String routeKey) {
         if (sysCode == null && routeKey == null) {
             return "*:*";
